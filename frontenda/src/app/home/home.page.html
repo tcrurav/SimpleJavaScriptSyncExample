@@ -1,0 +1,45 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>
+      Bicycles
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Bicycles</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-list>
+    <ion-item *ngFor="let b of bicycles">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="8">
+            <ion-label>{{b.brand}} {{b.model}}</ion-label>
+          </ion-col>
+          <ion-col size="1">
+            <ion-button color="success" fill="outline" (click)="update(b, 1)" icon-only><ion-icon name="add-circle-outline" (click)="update(b, 1)"></ion-icon></ion-button>
+            <ion-button color="danger" fill="outline" (click)="update(b, -1)" icon-only><ion-icon name="remove-circle-outline" (click)="update(b, -1)"></ion-icon></ion-button>
+          </ion-col>
+          <ion-col size="3">
+            <ion-label>
+              <h1 *ngIf="b.updated" class="stock dirty">{{b.stock}}</h1>
+              <h1 *ngIf="!b.updated" class="stock un-dirty">{{b.stock}}</h1>
+            </ion-label>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+
+      <!-- <ion-input type="number" value={{b.stock}} step="1"></ion-input>
+
+      <div class="item-note" item-end>
+        <button ion-button clear (click)="update(b.id)">
+          <ion-icon name="create"></ion-icon>
+        </button>
+      </div> -->
+    </ion-item>
+  </ion-list>
+</ion-content>
