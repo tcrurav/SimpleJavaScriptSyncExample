@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { forkJoin, from, Observable, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, mergeMap, tap } from 'rxjs/operators';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import Bicycle from '../models/bicycle';
 import { StorageService } from './storage.service';
@@ -18,12 +18,10 @@ export class BicycleService {
 
   constructor(private httpClient: HttpClient, private storageService: StorageService) { }
 
-  getBicycles() {
+  getBicycles(): Observable<any> {
     if (!navigator.onLine) {
-      console.log("No connection to API!")
       return from(this.storageService.get("bicycles"));
     }
-    console.log("API reachable!")
     return this.httpClient.get(this.endpoint).pipe(
       tap(async bicycles => {
         await this.storageService.set("bicycles", { type: "storage", bicycles });
@@ -34,26 +32,24 @@ export class BicycleService {
 
   async sync() {
     let bicycles = await this.storageService.get("bicycles");
-    let observables = new Array<Observable<any>>();
+    let observables = [];
     bicycles.bicycles.map(b => {
       if (b.updated) {
-        console.log("sync")
-        console.log(b)
-        // observables.push(this.update(b));
-        this.update(b).subscribe(() => console.log("done the update"));
+        observables.push(this.update(b));
       }
     });
-    console.log("antes del final del sync")
-    // console.log(observables.length);
-
+    if (observables.length >= 1) {
+      return forkJoin(observables).pipe(mergeMap((o) => {
+        return of(observables.length.toString());
+      }));
+    }
+    return of("no updates");
   }
 
-  update(bicycle: Bicycle) {
+  update(bicycle: Bicycle): Observable<any> {
     if (!navigator.onLine) {
-      console.log("No connection to API!");
       return from(this.changeBicycleInStorage(bicycle, true));
     }
-    console.log("API reachable!")
     return this.httpClient.put(this.endpoint + "/" + bicycle.id, bicycle, this.httpOptions).pipe(
       tap(async result => {
         await this.changeBicycleInStorage(bicycle, false);
@@ -63,33 +59,21 @@ export class BicycleService {
   }
 
   private async changeBicycleInStorage(bicycle: Bicycle, updated: boolean) {
-    console.log("changeBicycleInStorage")
-    console.log(bicycle)
-    console.log(updated)
     let bicycles = await this.storageService.get("bicycles");
-    console.log("after reading localstorage")
-    console.log(bicycles)
     bicycles.bicycles.map(b => {
       if (b.id == bicycle.id) {
         b.stock = bicycle.stock;
         b.updated = updated;
-        console.log("coincide")
-        console.log(b);
       }
     });
-    console.log("volver a escribir")
-    console.log(bicycles)
     await this.storageService.set("bicycles", bicycles);
   }
 
   private handleError(operation = 'operation', bicycle?: Bicycle) {
     return (error: any) => {
-      // console.error(error);
-      console.log(`${operation} failed: ${error.message}`);
       if (operation == "Update bicycle") {
         return from(this.changeBicycleInStorage(bicycle, true));
       }
-      //operation = "Get bicycle"
       return from(this.storageService.get("bicycles"));
     };
   }
